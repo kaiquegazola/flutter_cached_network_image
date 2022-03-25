@@ -2,15 +2,14 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-
 import 'package:cached_network_image_platform_interface'
         '/cached_network_image_platform_interface.dart' as platform
     show ImageLoader;
 import 'package:cached_network_image_platform_interface'
         '/cached_network_image_platform_interface.dart'
     show ImageRenderMethodForWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// ImageLoader class to load images on IO platforms.
 class ImageLoader implements platform.ImageLoader {
@@ -69,7 +68,8 @@ class ImageLoader implements platform.ImageLoader {
       });
 
       errorListener?.call();
-      rethrow;
+
+      chunkEvents.addError(e);
     } finally {
       await chunkEvents.close();
     }
