@@ -1,3 +1,8 @@
+## [3.3.0] - 2022-05-16
+* Add imageStreamListener parameter for ImageStreamComplete listener.
+* Update dependencies.
+```
+
 ## [3.2.1] - 2022-05-16
 * Update to Flutter 3
 

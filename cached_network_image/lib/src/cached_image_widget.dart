@@ -201,6 +201,11 @@ class CachedNetworkImage extends StatelessWidget {
   /// Will resize the image and store the resized image in the disk cache.
   final int? maxHeightDiskCache;
 
+  /// Listener to ImageStreamCompleter which notifies you when a chunk of
+  /// bytes has been received, an error occurs while loading an image or
+  /// requested image is available.
+  final ImageStreamListener? imageStreamListener;
+
   /// CachedNetworkImage shows a network image using a caching mechanism. It also
   /// provides support for a placeholder, showing an error and fading into the
   /// loaded image. Next to that it supports most features of a default Image
@@ -236,6 +241,7 @@ class CachedNetworkImage extends StatelessWidget {
     this.maxHeightDiskCache,
     ImageRenderMethodForWeb imageRenderMethodForWeb =
         ImageRenderMethodForWeb.HtmlImage,
+    this.imageStreamListener,
   })  : _image = CachedNetworkImageProvider(
           imageUrl,
           headers: httpHeaders,
@@ -244,6 +250,7 @@ class CachedNetworkImage extends StatelessWidget {
           imageRenderMethodForWeb: imageRenderMethodForWeb,
           maxWidth: maxWidthDiskCache,
           maxHeight: maxHeightDiskCache,
+          imageStreamListener: imageStreamListener,
         ),
         super(key: key);
 

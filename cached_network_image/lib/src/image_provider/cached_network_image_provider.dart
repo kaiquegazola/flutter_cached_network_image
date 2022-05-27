@@ -3,17 +3,16 @@ import 'dart:ui' as ui show Codec;
 
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
     show ImageRenderMethodForWeb;
+import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
+    if (dart.library.io) '_image_loader.dart'
+    if (dart.library.html) 'package:cached_network_image_web/cached_network_image_web.dart'
+    show ImageLoader;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import 'cached_network_image_provider.dart' as image_provider;
 import 'multi_image_stream_completer.dart';
-
-import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
-    if (dart.library.io) '_image_loader.dart'
-    if (dart.library.html) 'package:cached_network_image_web/cached_network_image_web.dart'
-    show ImageLoader;
 
 /// Function which is called after loading the image failed.
 typedef ErrorListener = void Function();
@@ -34,6 +33,7 @@ class CachedNetworkImageProvider
     this.cacheManager,
     this.cacheKey,
     this.imageRenderMethodForWeb = ImageRenderMethodForWeb.HtmlImage,
+    this.imageStreamListener,
   });
 
   /// CacheManager from which the image files are loaded.
@@ -65,6 +65,11 @@ class CachedNetworkImageProvider
   /// Render option for images on the web platform.
   final ImageRenderMethodForWeb imageRenderMethodForWeb;
 
+  /// Listener to ImageStreamCompleter which notifies you when a chunk of
+  /// bytes has been received, an error occurs while loading an image or
+  /// requested image is available.
+  final ImageStreamListener? imageStreamListener;
+
   @override
   Future<CachedNetworkImageProvider> obtainKey(
       ImageConfiguration configuration) {
@@ -73,7 +78,9 @@ class CachedNetworkImageProvider
 
   @override
   ImageStreamCompleter load(
-      image_provider.CachedNetworkImageProvider key, DecoderCallback decode) {
+    image_provider.CachedNetworkImageProvider key,
+    DecoderCallback decode,
+  ) {
     final chunkEvents = StreamController<ImageChunkEvent>();
     return MultiImageStreamCompleter(
       codec: _loadAsync(key, chunkEvents, decode),
@@ -86,6 +93,7 @@ class CachedNetworkImageProvider
           style: DiagnosticsTreeStyle.errorProperty,
         );
       },
+      imageStreamListener: imageStreamListener,
     );
   }
 
