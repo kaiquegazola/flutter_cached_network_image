@@ -23,6 +23,9 @@ class MultiImageStreamCompleter extends ImageStreamCompleter {
     ImageStreamListener? imageStreamListener,
   })  : _informationCollector = informationCollector,
         _scale = scale {
+    if (imageStreamListener != null) {
+      addListener(imageStreamListener);
+    }
     codec.listen(
       (event) {
         if (_timer != null) {
@@ -41,24 +44,6 @@ class MultiImageStreamCompleter extends ImageStreamCompleter {
         );
       },
     );
-    if (imageStreamListener != null) {
-      addListener(imageStreamListener);
-    }
-    codec.listen((event) {
-      if (_timer != null) {
-        _nextImageCodec = event;
-      } else {
-        _handleCodecReady(event);
-      }
-    }, onError: (dynamic error, StackTrace stack) {
-      reportError(
-        context: ErrorDescription('resolving an image codec'),
-        exception: error,
-        stack: stack,
-        informationCollector: informationCollector,
-        silent: true,
-      );
-    });
     if (chunkEvents != null) {
       _chunkSubscription = chunkEvents.listen(
         reportImageChunkEvent,
