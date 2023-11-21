@@ -41,7 +41,7 @@ class MultiImageStreamCompleter extends ImageStreamCompleter {
         );
       },
     );
-    if(imageStreamListener != null) {
+    if (imageStreamListener != null) {
       addListener(imageStreamListener);
     }
     codec.listen((event) {

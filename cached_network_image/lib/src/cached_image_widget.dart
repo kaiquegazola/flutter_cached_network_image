@@ -246,7 +246,7 @@ class CachedNetworkImage extends StatelessWidget {
     this.imageStreamListener,
     ImageRenderMethodForWeb imageRenderMethodForWeb =
         ImageRenderMethodForWeb.HtmlImage,
-  })  : _image = CachedNetworkImageProvider(
+  }) : _image = CachedNetworkImageProvider(
           imageUrl,
           headers: httpHeaders,
           cacheManager: cacheManager,
