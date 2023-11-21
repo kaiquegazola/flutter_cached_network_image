@@ -1,8 +1,9 @@
 import 'dart:async' show Future, StreamController;
 import 'dart:ui' as ui show Codec;
 
+import 'package:cached_network_image/src/image_provider/multi_image_stream_completer.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
-    show ImageRenderMethodForWeb;
+    show ErrorListener, ImageRenderMethodForWeb;
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
     if (dart.library.io) '_image_loader.dart'
     if (dart.library.html) 'package:cached_network_image_web/cached_network_image_web.dart'
@@ -11,16 +12,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
-import 'cached_network_image_provider.dart' as image_provider;
-import 'multi_image_stream_completer.dart';
-
-/// Function which is called after loading the image failed.
-typedef ErrorListener = void Function();
-
 /// IO implementation of the CachedNetworkImageProvider; the ImageProvider to
 /// load network images using a cache.
+@immutable
 class CachedNetworkImageProvider
-    extends ImageProvider<image_provider.CachedNetworkImageProvider> {
+    extends ImageProvider<CachedNetworkImageProvider> {
   /// Creates an ImageProvider which loads an image from the [url], using the [scale].
   /// When the image fails to load [errorListener] is called.
   const CachedNetworkImageProvider(
@@ -49,7 +45,7 @@ class CachedNetworkImageProvider
   final double scale;
 
   /// Listener to be called when images fails to load.
-  final image_provider.ErrorListener? errorListener;
+  final ErrorListener? errorListener;
 
   /// Set headers for the image provider, for example for authentication
   final Map<String, String>? headers;
@@ -72,18 +68,62 @@ class CachedNetworkImageProvider
 
   @override
   Future<CachedNetworkImageProvider> obtainKey(
-      ImageConfiguration configuration) {
+    ImageConfiguration configuration,
+  ) {
     return SynchronousFuture<CachedNetworkImageProvider>(this);
   }
 
+  @Deprecated('loadBuffer is deprecated, use loadImage instead')
   @override
-  ImageStreamCompleter load(
-    image_provider.CachedNetworkImageProvider key,
-    DecoderCallback decode,
+  ImageStreamCompleter loadBuffer(
+    CachedNetworkImageProvider key,
+    DecoderBufferCallback decode,
   ) {
     final chunkEvents = StreamController<ImageChunkEvent>();
     return MultiImageStreamCompleter(
-      codec: _loadAsync(key, chunkEvents, decode),
+      codec: _loadBufferAsync(key, chunkEvents, decode),
+      chunkEvents: chunkEvents.stream,
+      scale: key.scale,
+      informationCollector: () sync* {
+        yield DiagnosticsProperty<ImageProvider>(
+          'Image provider: $this \n Image key: $key',
+          this,
+          style: DiagnosticsTreeStyle.errorProperty,
+        );
+      },
+    );
+  }
+
+  @Deprecated('_loadBufferAsync is deprecated, use _loadImageAsync instead')
+  Stream<ui.Codec> _loadBufferAsync(
+    CachedNetworkImageProvider key,
+    StreamController<ImageChunkEvent> chunkEvents,
+    DecoderBufferCallback decode,
+  ) {
+    assert(key == this);
+    return ImageLoader().loadBufferAsync(
+      url,
+      cacheKey,
+      chunkEvents,
+      decode,
+      cacheManager ?? DefaultCacheManager(),
+      maxHeight,
+      maxWidth,
+      headers,
+      () => errorListener,
+      imageRenderMethodForWeb,
+      () => PaintingBinding.instance.imageCache.evict(key),
+    );
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    CachedNetworkImageProvider key,
+    ImageDecoderCallback decode,
+  ) {
+    final chunkEvents = StreamController<ImageChunkEvent>();
+    return MultiImageStreamCompleter(
+      codec: _loadImageAsync(key, chunkEvents, decode),
       chunkEvents: chunkEvents.stream,
       scale: key.scale,
       informationCollector: () sync* {
@@ -97,13 +137,13 @@ class CachedNetworkImageProvider
     );
   }
 
-  Stream<ui.Codec> _loadAsync(
-    image_provider.CachedNetworkImageProvider key,
+  Stream<ui.Codec> _loadImageAsync(
+    CachedNetworkImageProvider key,
     StreamController<ImageChunkEvent> chunkEvents,
-    DecoderCallback decode,
+    ImageDecoderCallback decode,
   ) {
     assert(key == this);
-    return ImageLoader().loadAsync(
+    return ImageLoader().loadImageAsync(
       url,
       cacheKey,
       chunkEvents,
@@ -119,7 +159,7 @@ class CachedNetworkImageProvider
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other is CachedNetworkImageProvider) {
       return ((cacheKey ?? url) == (other.cacheKey ?? other.url)) &&
           scale == other.scale &&
@@ -130,8 +170,8 @@ class CachedNetworkImageProvider
   }
 
   @override
-  int get hashCode => hashValues(cacheKey ?? url, scale, maxHeight, maxWidth);
+  int get hashCode => Object.hash(cacheKey ?? url, scale, maxHeight, maxWidth);
 
   @override
-  String toString() => '$runtimeType("$url", scale: $scale)';
+  String toString() => 'CachedNetworkImageProvider("$url", scale: $scale)';
 }

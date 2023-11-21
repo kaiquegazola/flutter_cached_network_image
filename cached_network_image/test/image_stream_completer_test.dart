@@ -5,10 +5,10 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class FakeFrameInfo implements FrameInfo {
   const FakeFrameInfo(this._duration, this._image);
@@ -63,8 +63,9 @@ class MockCodec implements Codec {
 }
 
 class FakeEventReportingImageStreamCompleter extends ImageStreamCompleter {
-  FakeEventReportingImageStreamCompleter(
-      {Stream<ImageChunkEvent>? chunkEvents}) {
+  FakeEventReportingImageStreamCompleter({
+    Stream<ImageChunkEvent>? chunkEvents,
+  }) {
     if (chunkEvents != null) {
       chunkEvents.listen(
         (ImageChunkEvent event) {
@@ -94,6 +95,39 @@ void main() {
     codecStream.addError('failure message');
     await tester.idle();
     expect(tester.takeException(), 'failure message');
+  });
+
+  test('Completer unsubscribes to chunk events when disposed', () async {
+    final codecStream = StreamController<Codec>();
+    final chunkStream = StreamController<ImageChunkEvent>();
+
+    final MultiImageStreamCompleter completer = MultiImageStreamCompleter(
+      codec: codecStream.stream,
+      scale: 1.0,
+      chunkEvents: chunkStream.stream,
+    );
+
+    expect(chunkStream.hasListener, true);
+
+    chunkStream.add(
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3),
+    );
+
+    final ImageStreamListener listener =
+        ImageStreamListener((ImageInfo info, bool syncCall) {});
+    // Cause the completer to dispose.
+    completer.addListener(listener);
+    completer.removeListener(listener);
+
+    expect(chunkStream.hasListener, false);
+
+    // The above expectation should cover this, but the point of this test is to
+    // make sure the completer does not assert that it's disposed and still
+    // receiving chunk events. Streams from the network can keep sending data
+    // even after evicting an image from the cache, for example.
+    chunkStream.add(
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
   });
 
   testWidgets('Decoding starts when a listener is added after codec is ready',
@@ -199,16 +233,20 @@ void main() {
       chunkEvents: streamController.stream,
     );
 
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onChunk: (ImageChunkEvent event) {
-        chunkEvents.add(event);
-      },
-    ));
+    imageStream.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onChunk: (ImageChunkEvent event) {
+          chunkEvents.add(event);
+        },
+      ),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
     await tester.idle();
 
     expect(chunkEvents.length, 2);
@@ -229,16 +267,20 @@ void main() {
     );
 
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3),
+    );
     await tester.idle();
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onChunk: (ImageChunkEvent event) {
-        chunkEvents.add(event);
-      },
-    ));
+    imageStream.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onChunk: (ImageChunkEvent event) {
+          chunkEvents.add(event);
+        },
+      ),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
     await tester.idle();
 
     expect(chunkEvents.length, 1);
@@ -257,16 +299,20 @@ void main() {
       scale: 1.0,
     );
 
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onChunk: (ImageChunkEvent event) {
-        chunkEvents.add(event);
-      },
-    ));
+    imageStream.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onChunk: (ImageChunkEvent event) {
+          chunkEvents.add(event);
+        },
+      ),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
     await tester.idle();
 
     expect(chunkEvents.length, 2);
@@ -289,16 +335,20 @@ void main() {
     );
 
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 3),
+    );
     await tester.idle();
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onChunk: (ImageChunkEvent event) {
-        chunkEvents.add(event);
-      },
-    ));
+    imageStream.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onChunk: (ImageChunkEvent event) {
+          chunkEvents.add(event);
+        },
+      ),
+    );
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
     await tester.idle();
 
     expect(chunkEvents.length, 1);
@@ -316,15 +366,18 @@ void main() {
       scale: 1.0,
     );
 
-    imageStream.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onChunk: (ImageChunkEvent event) {
-        chunkEvents.add(event);
-      },
-    ));
+    imageStream.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onChunk: (ImageChunkEvent event) {
+          chunkEvents.add(event);
+        },
+      ),
+    );
     streamController.addError(Error());
     streamController.add(
-        const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3));
+      const ImageChunkEvent(cumulativeBytesLoaded: 2, expectedTotalBytes: 3),
+    );
     await tester.idle();
 
     expect(tester.takeException(), isNotNull);
@@ -371,9 +424,10 @@ void main() {
 
     final emittedImages = <ImageInfo>[];
     imageStream.addListener(
-        ImageStreamListener((ImageInfo image, bool synchronousCall) {
-      emittedImages.add(image);
-    }));
+      ImageStreamListener((ImageInfo image, bool synchronousCall) {
+        emittedImages.add(image);
+      }),
+    );
 
     codecStream.add(mockCodec);
     await tester.idle();
@@ -384,9 +438,10 @@ void main() {
     await tester.idle();
 
     expect(
-        emittedImages
-            .every((ImageInfo info) => info.image.isCloneOf(frame.image)),
-        true);
+      emittedImages
+          .every((ImageInfo info) => info.image.isCloneOf(frame.image)),
+      true,
+    );
   });
 
   testWidgets('ImageStream emits frames (animated images)',
@@ -403,9 +458,10 @@ void main() {
 
     final emittedImages = <ImageInfo>[];
     imageStream.addListener(
-        ImageStreamListener((ImageInfo image, bool synchronousCall) {
-      emittedImages.add(image);
-    }));
+      ImageStreamListener((ImageInfo image, bool synchronousCall) {
+        emittedImages.add(image);
+      }),
+    );
 
     codecStream.add(mockCodec);
     await tester.idle();
@@ -452,9 +508,10 @@ void main() {
 
     final emittedImages = <ImageInfo>[];
     imageStream.addListener(
-        ImageStreamListener((ImageInfo image, bool synchronousCall) {
-      emittedImages.add(image);
-    }));
+      ImageStreamListener((ImageInfo image, bool synchronousCall) {
+        emittedImages.add(image);
+      }),
+    );
 
     codecStream.add(mockCodec);
     await tester.idle();
@@ -496,9 +553,10 @@ void main() {
 
     final emittedImages = <ImageInfo>[];
     imageStream.addListener(
-        ImageStreamListener((ImageInfo image, bool synchronousCall) {
-      emittedImages.add(image);
-    }));
+      ImageStreamListener((ImageInfo image, bool synchronousCall) {
+        emittedImages.add(image);
+      }),
+    );
 
     codecStream.add(mockCodec);
     await tester.idle();
@@ -664,15 +722,17 @@ void main() {
       scale: 1.0,
     );
 
-    dynamic capturedException;
-    errorListener(dynamic exception, StackTrace? stackTrace) {
+    Object? capturedException;
+    errorListener(Object exception, StackTrace? stackTrace) {
       capturedException = exception;
     }
 
-    streamUnderTest.addListener(ImageStreamListener(
-      (ImageInfo image, bool synchronousCall) {},
-      onError: errorListener,
-    ));
+    streamUnderTest.addListener(
+      ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onError: errorListener,
+      ),
+    );
 
     codecStream.add(mockCodec);
     // MultiImageStreamCompleter only sets an error handler for the next
@@ -798,7 +858,7 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('Multiframe image is completed before next image is shown',
+  testWidgets('Multi-frame image is completed before next image is shown',
       (WidgetTester tester) async {
     final firstCodec = MockCodec();
     firstCodec.frameCount = 3;

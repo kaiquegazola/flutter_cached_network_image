@@ -1,7 +1,18 @@
-## [3.3.0] - 2022-05-16
-* Add imageStreamListener parameter for ImageStreamComplete listener.
-* Update dependencies.
-```
+## [3.3.0] - 2023-09-25
+* Add error to ErrorListener
+* Update to Dart 3
+* Remove [`load`](https://github.com/flutter/flutter/pull/132679), use `loadImage` instead `loadBuffer`
+
+Minor code clean-ups:
+* Add topics in pubspec
+* Specify types
+* Update example
+
+## [3.2.3] - 2022-11-25
+* Correctly dispose image stream handler
+
+## [3.2.2] - 2022-08-31
+* loadBuffer is added and used instead of load
 
 ## [3.2.1] - 2022-05-16
 * Update to Flutter 3
